@@ -1,32 +1,24 @@
-package example.before;
-
-import java.util.Arrays;
+package example.after;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.access.vote.AffirmativeBased;
-import org.springframework.security.access.vote.UnanimousBased;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.expression.WebExpressionVoter;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfiguration {
 
 	@Bean
-	SecurityFilterChain web(HttpSecurity http, CustomAccessDecisionVoter voter) throws Exception {
+	SecurityFilterChain web(HttpSecurity http) throws Exception {
 		http
-			.authorizeRequests((requests) -> requests
-				.mvcMatchers("/read").hasAuthority("read")
-				.mvcMatchers("/write").hasAuthority("write")
-				.anyRequest().authenticated()
-				.accessDecisionManager(new AffirmativeBased(Arrays.asList(voter, new WebExpressionVoter())))
-			)
+			.authorizeHttpRequests((requests) -> requests.anyRequest().authenticated())
 			.httpBasic(Customizer.withDefaults());
 
 		return http.build();

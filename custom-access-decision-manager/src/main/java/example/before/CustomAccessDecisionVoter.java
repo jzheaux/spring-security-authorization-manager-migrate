@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CustomAccessDecisionVoter implements AccessDecisionVoter<FilterInvocation> {
-	private AuthenticationTrustResolver trustResolver = new AuthenticationTrustResolverImpl();
 
 	@Override
 	public boolean supports(ConfigAttribute attribute) {
@@ -28,25 +27,11 @@ public class CustomAccessDecisionVoter implements AccessDecisionVoter<FilterInvo
 	@Override
 	public int vote(Authentication authentication, FilterInvocation object, Collection collection) {
 		if (authentication == null) {
-			return mapToVote(false);
-		}
-		if (object.getRequestUrl().equals("/read")) {
-			return mapToVote(authentication.getAuthorities().contains(new SimpleGrantedAuthority("read")));
-		}
-		if (object.getRequestUrl().equals("/write")) {
-			return mapToVote(authentication.getAuthorities().contains(new SimpleGrantedAuthority("write")));
-		}
-		return mapToVote(authentication.isAuthenticated() && !this.trustResolver.isAnonymous(authentication));
-	}
-
-	private int mapToVote(Boolean granted) {
-		if (granted == null) {
 			return ACCESS_ABSTAIN;
 		}
-		if (granted) {
-			return ACCESS_GRANTED;
+		if (!"admin".equals(authentication.getName())) {
+			return ACCESS_ABSTAIN;
 		}
-		return ACCESS_DENIED;
+		return ACCESS_GRANTED;
 	}
-
 }

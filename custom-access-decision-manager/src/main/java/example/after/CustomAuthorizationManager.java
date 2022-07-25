@@ -1,38 +1,29 @@
 package example.after;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.function.Supplier;
 
-import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
-import org.springframework.security.authorization.AuthorityAuthorizationManager;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.AnyRequestMatcher;
-import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.stereotype.Component;
+import org.springframework.security.web.access.intercept.RequestMatcherDelegatingAuthorizationManager;
 
-@Component
 public class CustomAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
-	private final Map<RequestMatcher, AuthorizationManager<RequestAuthorizationContext>> matchers = new LinkedHashMap<>();
+	private final RequestMatcherDelegatingAuthorizationManager authorizationManager;
+	private final AuthorizationManager<RequestAuthorizationContext> admin = (supplier, object) ->
+			new AuthorizationDecision("admin".equals(supplier.get().getName()));
 
-	public CustomAuthorizationManager() {
-		this.matchers.put(new AntPathRequestMatcher("/read"), AuthorityAuthorizationManager.hasAuthority("read"));
-		this.matchers.put(new AntPathRequestMatcher("/write"), AuthorityAuthorizationManager.hasAuthority("write"));
-		this.matchers.put(AnyRequestMatcher.INSTANCE, AuthenticatedAuthorizationManager.authenticated());
+	public CustomAuthorizationManager(RequestMatcherDelegatingAuthorizationManager authorizationManager) {
+		this.authorizationManager = authorizationManager;
 	}
 
 	@Override
 	public AuthorizationDecision check(Supplier<Authentication> supplier, RequestAuthorizationContext object) {
-		for (RequestMatcher matcher : this.matchers.keySet()) {
-			if (matcher.matches(object.getRequest())) {
-				return this.matchers.get(matcher).check(supplier, object);
-			}
+		AuthorizationDecision decision = this.authorizationManager.check(supplier, object.getRequest());
+		if (decision != null && decision.isGranted()) {
+			return decision;
 		}
-		return new AuthorizationDecision(false);
+		return this.admin.check(supplier, object);
 	}
 
 }
